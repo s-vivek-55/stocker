@@ -3,6 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import '../services/user_profile_service.dart';
 import '../services/theme_service.dart';
+import '../services/import_service.dart';
+import '../services/data_persistence_service.dart';
 
 class InitializationScreen extends StatefulWidget {
   const InitializationScreen({super.key});
@@ -20,6 +22,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
 
   File? _selectedFile;
   bool _isLoading = false;
+  int _importedItemsCount = 0;
   late String _currentTheme;
 
   @override
@@ -36,6 +39,52 @@ class _InitializationScreenState extends State<InitializationScreen> {
     _pin3.dispose();
     _pin4.dispose();
     super.dispose();
+  }
+
+  Future<void> _importFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv', 'xlsx', 'xls'],
+        dialogTitle: 'Select CSV or Excel file',
+      );
+
+      if (result != null && result.files.single.path != null) {
+        setState(() => _isLoading = true);
+
+        try {
+          final items =
+              await ImportService.importFromFile(result.files.single.path!);
+          await DataPersistenceService.saveItems(items, 'Imported');
+
+          setState(() {
+            _selectedFile = File(result.files.single.path!);
+            _importedItemsCount = items.length;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content:
+                    Text('Successfully imported ${items.length} items'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Import error: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   List<Color> _getGradient() {
@@ -210,6 +259,92 @@ class _InitializationScreenState extends State<InitializationScreen> {
                   ],
                 ),
                 const SizedBox(height: 48),
+
+                // Import Data Button
+                if (_importedItemsCount == 0)
+                  Container(
+                    width: double.infinity,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.5),
+                        width: 2,
+                      ),
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isLoading ? null : _importFile,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.upload_file,
+                                color: Colors.white.withOpacity(0.7),
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Import CSV/Excel',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.green.withOpacity(0.2),
+                      border: Border.all(
+                        color: Colors.green.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.green.withOpacity(0.7),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Imported $_importedItemsCount items',
+                            style: TextStyle(
+                              color: Colors.green.withOpacity(0.7),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _importedItemsCount = 0);
+                          },
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.green.withOpacity(0.7),
+                            size: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 24),
 
                 // Button
                 Container(

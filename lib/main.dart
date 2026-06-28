@@ -10,10 +10,18 @@ import 'services/user_profile_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
-  await DataPersistenceService.initializeHive();
-  await ThemeService.initializeTheme();
-  await UserProfileService.initializeUserProfile();
+  try {
+    await Hive.initFlutter();
+    print('✓ Hive initialized');
+    await DataPersistenceService.initializeHive();
+    print('✓ DataPersistenceService initialized');
+    await ThemeService.initializeTheme();
+    print('✓ ThemeService initialized');
+    await UserProfileService.initializeUserProfile();
+    print('✓ UserProfileService initialized');
+  } catch (e) {
+    print('✗ Error during initialization: $e');
+  }
   runApp(const StockerApp());
 }
 
