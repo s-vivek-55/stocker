@@ -55,7 +55,12 @@ class _InitializationScreenState extends State<InitializationScreen> {
         try {
           final items =
               await ImportService.importFromFile(result.files.single.path!);
-          await DataPersistenceService.saveItems(items, 'Imported');
+          
+          // Save imported items for the "Imported" shop
+          await DataPersistenceService.saveDayData(
+            shopName: 'Imported',
+            items: items,
+          );
 
           setState(() {
             _selectedFile = File(result.files.single.path!);
