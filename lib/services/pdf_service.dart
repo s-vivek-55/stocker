@@ -4,15 +4,10 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:file_picker/file_picker.dart';
 import '../models/stock_item.dart';
+import '../constants/app_constants.dart';
 import 'dart:io';
 
 class PdfService {
-  /// Items per dashboard page (must match dashboard pagination)
-  static const int itemsPerDashboardPage = 41;
-
-  /// Items per PDF page chunk (split dashboard pages into multiple PDF pages)
-  static const int itemsPerPdfPage = 15;
-
   /// Round value: if decimal >= 0.50, round to next integer
   static double roundPrice(double value) {
     final decimal = value - value.toInt();
@@ -43,13 +38,13 @@ class PdfService {
     // Split items into smaller chunks (15 items per page for optimal readability)
     List<List<StockItem>> splitItems(List<StockItem> items) {
       final chunks = <List<StockItem>>[];
-      for (int i = 0; i < items.length; i += itemsPerPdfPage) {
+      for (int i = 0; i < items.length; i += AppConstants.itemsPerPdfPage) {
         chunks.add(
           items.sublist(
             i,
-            i + itemsPerPdfPage > items.length
+            i + AppConstants.itemsPerPdfPage > items.length
                 ? items.length
-                : i + itemsPerPdfPage,
+                : i + AppConstants.itemsPerPdfPage,
           ),
         );
       }

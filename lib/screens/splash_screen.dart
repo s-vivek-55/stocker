@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/theme_service.dart';
 import '../services/user_profile_service.dart';
+import '../utils/theme_helper.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,22 +15,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animationController;
   late Animation<double> _progressAnimation;
   late String _currentTheme;
-
-  // Theme color definitions
-  final Map<String, Map<String, dynamic>> _themes = {
-    'default': {
-      'colors': const [Color(0xFF1a237e), Color(0xFF283593), Color(0xFF3f51b5)],
-    },
-    'green': {
-      'colors': const [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C)],
-    },
-    'orange': {
-      'colors': const [Color(0xFFE65100), Color(0xFFF57C00), Color(0xFFFF9800)],
-    },
-    'dark': {
-      'colors': const [Color(0xFF1a1a1a), Color(0xFF2d2d2d), Color(0xFF424242)],
-    },
-  };
 
   @override
   void initState() {
@@ -81,9 +66,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     // Always use default blue gradient for splash screen
-    final List<Color> themeColors = List<Color>.from(
-      _themes['default']!['colors'] as List,
-    );
+    final themeColors = ThemeHelper.getGradient('default');
 
     return Scaffold(
       body: Container(

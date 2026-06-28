@@ -5,6 +5,8 @@ import '../services/user_profile_service.dart';
 import '../services/theme_service.dart';
 import '../services/import_service.dart';
 import '../services/data_persistence_service.dart';
+import '../constants/app_constants.dart';
+import '../utils/theme_helper.dart';
 
 class InitializationScreen extends StatefulWidget {
   const InitializationScreen({super.key});
@@ -23,6 +25,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
   File? _selectedFile;
   bool _isLoading = false;
   int _importedItemsCount = 0;
+  String _selectedShopForImport = '';
   late String _currentTheme;
 
   @override
@@ -41,37 +44,124 @@ class _InitializationScreenState extends State<InitializationScreen> {
     super.dispose();
   }
 
-  Future<void> _importFile() async {
+  Future<void> _showShopSelectionDialog() async {
+    final TextEditingController shopNameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Select Shop for Import'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Choose which shop to import data for:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              // Predefined shops
+              ..._getPredefinedShops().map(
+                (shop) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(40),
+                      backgroundColor: ThemeHelper.getFabBackgroundColor(
+                        _currentTheme,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      _importFile(shop);
+                    },
+                    child: Text(
+                      shop,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Text(
+                'Or enter custom shop name:',
+                style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: shopNameController,
+                decoration: InputDecoration(
+                  hintText: 'Custom shop name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: shopNameController.text.isNotEmpty
+                        ? () {
+                            Navigator.pop(context);
+                            _importFile(shopNameController.text);
+                          }
+                        : null,
+                    child: const Text('Import'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<String> _getPredefinedShops() {
+    return AppConstants.predefinedShops;
+  }
+
+  Future<void> _importFile(String shopName) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv', 'xlsx', 'xls'],
-        dialogTitle: 'Select CSV or Excel file',
+        dialogTitle: 'Select CSV or Excel file for $shopName',
       );
 
       if (result != null && result.files.single.path != null) {
         setState(() => _isLoading = true);
 
         try {
-          final items =
-              await ImportService.importFromFile(result.files.single.path!);
-          
-          // Save imported items for the "Imported" shop
+          final items = await ImportService.importFromFile(
+            result.files.single.path!,
+          );
+
+          // Save imported items for the selected shop
           await DataPersistenceService.saveDayData(
-            shopName: 'Imported',
+            shopName: shopName,
             items: items,
           );
 
           setState(() {
             _selectedFile = File(result.files.single.path!);
             _importedItemsCount = items.length;
+            _selectedShopForImport = shopName;
           });
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content:
-                    Text('Successfully imported ${items.length} items'),
+                content: Text('Imported ${items.length} items to $shopName'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -93,45 +183,11 @@ class _InitializationScreenState extends State<InitializationScreen> {
   }
 
   List<Color> _getGradient() {
-    switch (_currentTheme) {
-      case 'green':
-        return [
-          const Color(0xFF1B5E20),
-          const Color(0xFF2E7D32),
-          const Color(0xFF388E3C),
-        ];
-      case 'orange':
-        return [
-          const Color(0xFFE65100),
-          const Color(0xFFF57C00),
-          const Color(0xFFFF9800),
-        ];
-      case 'dark':
-        return [
-          const Color(0xFF1a1a1a),
-          const Color(0xFF2d2d2d),
-          const Color(0xFF424242),
-        ];
-      default:
-        return [
-          const Color(0xFF1a237e),
-          const Color(0xFF283593),
-          const Color(0xFF3f51b5),
-        ];
-    }
+    return ThemeHelper.getGradient(_currentTheme);
   }
 
   List<Color> _getButtonGradient() {
-    switch (_currentTheme) {
-      case 'green':
-        return [const Color(0xFF2E7D32), const Color(0xFF1B5E20)];
-      case 'orange':
-        return [const Color(0xFFF57C00), const Color(0xFFE65100)];
-      case 'dark':
-        return [const Color(0xFF424242), const Color(0xFF212121)];
-      default:
-        return [const Color(0xFF42a5f5), const Color(0xFF1e88e5)];
-    }
+    return ThemeHelper.getButtonGradient(_currentTheme);
   }
 
   Future<void> _proceed() async {
@@ -280,7 +336,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: _isLoading ? null : _importFile,
+                        onTap: _isLoading ? null : _showShopSelectionDialog,
                         borderRadius: BorderRadius.circular(12),
                         child: Center(
                           child: Row(
@@ -328,7 +384,7 @@ class _InitializationScreenState extends State<InitializationScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Imported $_importedItemsCount items',
+                            'Imported $_importedItemsCount items to $_selectedShopForImport',
                             style: TextStyle(
                               color: Colors.green.withOpacity(0.7),
                               fontSize: 14,
@@ -338,7 +394,10 @@ class _InitializationScreenState extends State<InitializationScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            setState(() => _importedItemsCount = 0);
+                            setState(() {
+                              _importedItemsCount = 0;
+                              _selectedShopForImport = '';
+                            });
                           },
                           child: Icon(
                             Icons.close,

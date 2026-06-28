@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/stock_item.dart';
 import '../widgets/stock_card.dart';
 import '../data/saikrupa_sweets_data.dart';
@@ -7,6 +6,8 @@ import '../data/saikrupa_snacks_data.dart';
 import '../services/pdf_service.dart';
 import '../services/data_persistence_service.dart';
 import '../services/theme_service.dart';
+import '../constants/app_constants.dart';
+import '../utils/theme_helper.dart';
 
 /// Main dashboard screen with tab-based pagination
 class DashboardScreen extends StatefulWidget {
@@ -24,27 +25,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   late List<StockItem> _items;
   late List<StockItem> _templateItems;
   bool _isLoading = true;
-  String _currentTheme = 'default'; // 'default', 'green', 'orange', 'dark'
-
-  // Theme color definitions
-  final Map<String, Map<String, dynamic>> _themes = {
-    'default': {
-      'colors': const [Color(0xFF1a237e), Color(0xFF283593), Color(0xFF3f51b5)],
-      'label': 'Default',
-    },
-    'green': {
-      'colors': const [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C)],
-      'label': 'Green',
-    },
-    'orange': {
-      'colors': const [Color(0xFFE65100), Color(0xFFF57C00), Color(0xFFFF9800)],
-      'label': 'Orange',
-    },
-    'dark': {
-      'colors': const [Color(0xFF1a1a1a), Color(0xFF2d2d2d), Color(0xFF424242)],
-      'label': 'Dark',
-    },
-  };
+  String _currentTheme = 'default';
 
   @override
   void initState() {
@@ -109,17 +90,23 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   /// Get items for Page 1 (0-40)
   List<StockItem> get _page1Items {
-    return _items.sublist(0, 41);
+    return _items.sublist(0, AppConstants.itemsPerDashboardPage1);
   }
 
   /// Get items for Page 2 (41-87)
   List<StockItem> get _page2Items {
-    return _items.sublist(41, 88);
+    return _items.sublist(
+      AppConstants.itemsPerDashboardPage1,
+      AppConstants.itemsPerDashboardPage1 + AppConstants.itemsPerDashboardPage2,
+    );
   }
 
   /// Get items for Page 3 (88+)
   List<StockItem> get _page3Items {
-    return _items.length > 88 ? _items.sublist(88) : [];
+    final startIndex =
+        AppConstants.itemsPerDashboardPage1 +
+        AppConstants.itemsPerDashboardPage2;
+    return _items.length > startIndex ? _items.sublist(startIndex) : [];
   }
 
   /// Show dialog to add new item
@@ -318,14 +305,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Ensure current theme exists, fallback to 'default' if not
-    if (!_themes.containsKey(_currentTheme)) {
-      _currentTheme = 'default';
-    }
-
-    final List<Color> themeColors = List<Color>.from(
-      _themes[_currentTheme]!['colors'] as List,
-    );
+    final themeColors = ThemeHelper.getGradient(_currentTheme);
 
     return Scaffold(
       appBar: AppBar(

@@ -10,29 +10,31 @@ class ImportService {
     try {
       final file = File(filePath);
       final csv = await file.readAsString();
-      
+
       List<List<dynamic>> rows = const CsvToListConverter().convert(csv);
-      
+
       if (rows.isEmpty) {
         throw Exception('CSV file is empty');
       }
 
       // First row should be headers
-      List<String> headers = rows[0].map((h) => h.toString().toLowerCase()).toList();
-      
+      List<String> headers = rows[0]
+          .map((h) => h.toString().toLowerCase())
+          .toList();
+
       int nameIndex = headers.indexOf('name');
       int priceIndex = headers.indexOf('price');
       int openingStockIndex = headers.indexOf('openingstock');
-      
+
       if (nameIndex == -1 || priceIndex == -1 || openingStockIndex == -1) {
         throw Exception('CSV must contain columns: name, price, openingStock');
       }
 
       List<StockItem> items = [];
-      
+
       for (int i = 1; i < rows.length; i++) {
         List<dynamic> row = rows[i];
-        
+
         if (row.isEmpty || row.every((cell) => cell.toString().isEmpty)) {
           continue; // Skip empty rows
         }
@@ -41,13 +43,11 @@ class ImportService {
           String name = row[nameIndex].toString().trim();
           double price = double.parse(row[priceIndex].toString());
           int openingStock = int.parse(row[openingStockIndex].toString());
-          
+
           if (name.isNotEmpty) {
-            items.add(StockItem(
-              name: name,
-              price: price,
-              openingStock: openingStock,
-            ));
+            items.add(
+              StockItem(name: name, price: price, openingStock: openingStock),
+            );
           }
         } catch (e) {
           // Skip rows with invalid data
@@ -92,7 +92,9 @@ class ImportService {
       int openingStockIndex = headers.indexOf('openingstock');
 
       if (nameIndex == -1 || priceIndex == -1 || openingStockIndex == -1) {
-        throw Exception('Excel must contain columns: name, price, openingStock');
+        throw Exception(
+          'Excel must contain columns: name, price, openingStock',
+        );
       }
 
       List<StockItem> items = [];
@@ -107,17 +109,17 @@ class ImportService {
 
         try {
           String name = (row[nameIndex]?.value ?? '').toString().trim();
-          double price =
-              double.parse((row[priceIndex]?.value ?? '0').toString());
-          int openingStock =
-              int.parse((row[openingStockIndex]?.value ?? '0').toString());
+          double price = double.parse(
+            (row[priceIndex]?.value ?? '0').toString(),
+          );
+          int openingStock = int.parse(
+            (row[openingStockIndex]?.value ?? '0').toString(),
+          );
 
           if (name.isNotEmpty) {
-            items.add(StockItem(
-              name: name,
-              price: price,
-              openingStock: openingStock,
-            ));
+            items.add(
+              StockItem(name: name, price: price, openingStock: openingStock),
+            );
           }
         } catch (e) {
           // Skip rows with invalid data

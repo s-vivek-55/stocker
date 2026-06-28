@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/user_profile_service.dart';
 import '../services/theme_service.dart';
+import '../utils/theme_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -36,45 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   List<Color> _getGradient() {
-    switch (_currentTheme) {
-      case 'green':
-        return [
-          const Color(0xFF1B5E20),
-          const Color(0xFF2E7D32),
-          const Color(0xFF388E3C),
-        ];
-      case 'orange':
-        return [
-          const Color(0xFFE65100),
-          const Color(0xFFF57C00),
-          const Color(0xFFFF9800),
-        ];
-      case 'dark':
-        return [
-          const Color(0xFF1a1a1a),
-          const Color(0xFF2d2d2d),
-          const Color(0xFF424242),
-        ];
-      default:
-        return [
-          const Color(0xFF1a237e),
-          const Color(0xFF283593),
-          const Color(0xFF3f51b5),
-        ];
-    }
+    return ThemeHelper.getGradient(_currentTheme);
   }
 
   List<Color> _getButtonGradient() {
-    switch (_currentTheme) {
-      case 'green':
-        return [const Color(0xFF2E7D32), const Color(0xFF1B5E20)];
-      case 'orange':
-        return [const Color(0xFFF57C00), const Color(0xFFE65100)];
-      case 'dark':
-        return [const Color(0xFF424242), const Color(0xFF212121)];
-      default:
-        return [const Color(0xFF42a5f5), const Color(0xFF1e88e5)];
-    }
+    return ThemeHelper.getButtonGradient(_currentTheme);
   }
 
   Future<void> _verify() async {
