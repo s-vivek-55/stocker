@@ -6,6 +6,7 @@ import '../data/saikrupa_sweets_data.dart';
 import '../data/saikrupa_snacks_data.dart';
 import '../services/pdf_service.dart';
 import '../services/data_persistence_service.dart';
+import '../services/theme_service.dart';
 
 /// Main dashboard screen with tab-based pagination
 class DashboardScreen extends StatefulWidget {
@@ -23,22 +24,46 @@ class _DashboardScreenState extends State<DashboardScreen>
   late List<StockItem> _items;
   late List<StockItem> _templateItems;
   bool _isLoading = true;
+  String _currentTheme = 'default'; // 'default', 'green', 'orange', 'dark'
+
+  // Theme color definitions
+  final Map<String, Map<String, dynamic>> _themes = {
+    'default': {
+      'colors': const [Color(0xFF1a237e), Color(0xFF283593), Color(0xFF3f51b5)],
+      'label': 'Default',
+    },
+    'green': {
+      'colors': const [Color(0xFF1B5E20), Color(0xFF2E7D32), Color(0xFF388E3C)],
+      'label': 'Green',
+    },
+    'orange': {
+      'colors': const [Color(0xFFE65100), Color(0xFFF57C00), Color(0xFFFF9800)],
+      'label': 'Orange',
+    },
+    'dark': {
+      'colors': const [Color(0xFF1a1a1a), Color(0xFF2d2d2d), Color(0xFF424242)],
+      'label': 'Dark',
+    },
+  };
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
+    // Load saved theme from Hive
+    _currentTheme = ThemeService.getCurrentTheme();
+
     // Load template data
     _templateItems = List<StockItem>.from(
       widget.shopName == 'Saikrupa Sweets'
           ? saikrupaSweetsItems
           : saikrupaSnacksItems,
     );
-    
+
     // Load persisted data
     _loadData();
-    
+
     _tabController.addListener(() {
       setState(() {});
     });
@@ -50,7 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       shopName: widget.shopName,
       templateItems: _templateItems,
     );
-    
+
     setState(() {
       _items = items;
       _isLoading = false;
@@ -61,6 +86,15 @@ class _DashboardScreenState extends State<DashboardScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  /// Round price: if decimal >= 0.50, round to next integer
+  double _roundPrice(double value) {
+    final decimal = value - value.toInt();
+    if (decimal >= 0.50) {
+      return (value.toInt() + 1).toDouble();
+    }
+    return value.floorToDouble();
   }
 
   /// Calculate grand total from all items
@@ -190,7 +224,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               try {
                 final filePath = await PdfService.generateStockReport(
                   reportName: reportName,
-                  items: _items,
+                  page1Items: _page1Items,
+                  page2Items: _page2Items,
+                  page3Items: _page3Items,
                 );
 
                 if (mounted) {
@@ -238,11 +274,13 @@ class _DashboardScreenState extends State<DashboardScreen>
           ElevatedButton(
             onPressed: () async {
               try {
-                // Save today's data
-                await DataPersistenceService.saveDayData(
-                  shopName: widget.shopName,
-                  items: _items,
-                );
+                // Finish day, save data, and load tomorrow's data
+                final tomorrowItems =
+                    await DataPersistenceService.finishDayAndLoadNext(
+                      shopName: widget.shopName,
+                      items: _items,
+                      templateItems: _templateItems,
+                    );
 
                 if (mounted) {
                   Navigator.of(context).pop();
@@ -253,9 +291,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   );
 
-                  // Reload data for tomorrow
-                  await Future.delayed(const Duration(seconds: 2));
-                  await _loadData();
+                  // Update UI with tomorrow's data
+                  setState(() {
+                    _items = tomorrowItems;
+                    _isLoading = false;
+                  });
                 }
               } catch (e) {
                 if (mounted) {
@@ -278,23 +318,143 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Ensure current theme exists, fallback to 'default' if not
+    if (!_themes.containsKey(_currentTheme)) {
+      _currentTheme = 'default';
+    }
+
+    final List<Color> themeColors = List<Color>.from(
+      _themes[_currentTheme]!['colors'] as List,
+    );
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.shopName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Generate PDF Report',
-            onPressed: _generateReportDialog,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: themeColors,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.done_all),
-            tooltip: 'Finish Day',
-            onPressed: _finishDay,
+        ),
+        title: Text(
+          widget.shopName,
+          style: const TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'pdf') {
+                _generateReportDialog();
+              } else if (value == 'finish') {
+                _finishDay();
+              } else if (value.startsWith('theme_')) {
+                final newTheme = value.replaceFirst('theme_', '');
+                setState(() {
+                  _currentTheme = newTheme;
+                });
+                // Save theme to Hive
+                ThemeService.saveTheme(newTheme);
+              } else if (value == 'exit') {
+                Navigator.of(context).pushReplacementNamed('/shop-selection');
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Generate PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'finish',
+                child: Row(
+                  children: [
+                    Icon(Icons.done_all, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Finish Day'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              CheckedPopupMenuItem<String>(
+                value: 'theme_default',
+                checked: _currentTheme == 'default',
+                child: const Row(
+                  children: [
+                    Icon(Icons.palette, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Default'),
+                  ],
+                ),
+              ),
+              CheckedPopupMenuItem<String>(
+                value: 'theme_green',
+                checked: _currentTheme == 'green',
+                child: const Row(
+                  children: [
+                    Icon(Icons.palette, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Green'),
+                  ],
+                ),
+              ),
+              CheckedPopupMenuItem<String>(
+                value: 'theme_orange',
+                checked: _currentTheme == 'orange',
+                child: const Row(
+                  children: [
+                    Icon(Icons.palette, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Orange'),
+                  ],
+                ),
+              ),
+              CheckedPopupMenuItem<String>(
+                value: 'theme_dark',
+                checked: _currentTheme == 'dark',
+                child: const Row(
+                  children: [
+                    Icon(Icons.palette, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Dark'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'exit',
+                child: Row(
+                  children: [
+                    Icon(Icons.exit_to_app, color: Colors.black),
+                    SizedBox(width: 10),
+                    Text('Exit to Shop Selection'),
+                  ],
+                ),
+              ),
+            ],
+            child: const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Icon(Icons.menu, color: Colors.white),
+                  SizedBox(width: 4),
+                  Text('Menu', style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
+          labelStyle: const TextStyle(color: Colors.white),
+          unselectedLabelStyle: const TextStyle(color: Colors.white70),
           tabs: const [
             Tab(text: 'Page 1'),
             Tab(text: 'Page 2'),
@@ -302,123 +462,134 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                Column(
-                  children: [
-                    // Page-Specific Total Summary Card
-                    Builder(
-                      builder: (context) {
-                        List<StockItem> currentPageItems;
-                        switch (_tabController.index) {
-                          case 0:
-                            currentPageItems = _page1Items;
-                            break;
-                          case 1:
-                            currentPageItems = _page2Items;
-                            break;
-                          case 2:
-                            currentPageItems = _page3Items;
-                            break;
-                          default:
-                            currentPageItems = _page1Items;
-                        }
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: themeColors,
+          ),
+        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
+                children: [
+                  Column(
+                    children: [
+                      // Page-Specific Total Summary Card
+                      Builder(
+                        builder: (context) {
+                          List<StockItem> currentPageItems;
+                          switch (_tabController.index) {
+                            case 0:
+                              currentPageItems = _page1Items;
+                              break;
+                            case 1:
+                              currentPageItems = _page2Items;
+                              break;
+                            case 2:
+                              currentPageItems = _page3Items;
+                              break;
+                            default:
+                              currentPageItems = _page1Items;
+                          }
 
-                        final pageTotal = _calculatePageTotal(currentPageItems);
+                          final pageTotal = _calculatePageTotal(
+                            currentPageItems,
+                          );
 
-                        return Container(
-                          margin: const EdgeInsets.all(12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Page Earnings:',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                          return Container(
+                            margin: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _getPageEarningsColor(),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Page Earnings:',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getPageEarningsTextColor(),
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '₹${pageTotal.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                Text(
+                                  '₹${pageTotal.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getPageEarningsTextColor(),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
 
-                    // Tabbed Pages
-                    Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
+                      // Tabbed Pages
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildStockListView(_page1Items),
+                            _buildStockListView(_page2Items),
+                            _buildStockListView(_page3Items),
+                          ],
+                        ),
+                      ),
+                      // Bottom padding for floating widget
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+
+                  // Grand Total Floating Widget at Bottom
+                  Positioned(
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: _getTotalEarningsColor(),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildStockListView(_page1Items),
-                          _buildStockListView(_page2Items),
-                          _buildStockListView(_page3Items),
+                          Text(
+                            'Total Earnings:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _getTotalEarningsTextColor(),
+                            ),
+                          ),
+                          Text(
+                            '${_roundPrice(_calculateGrandTotal()).toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _getTotalEarningsTextColor(),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    // Bottom padding for floating widget
-                    const SizedBox(height: 100),
-                  ],
-                ),
-
-                // Grand Total Floating Widget at Bottom
-                Positioned(
-                  bottom: 20,
-                  left: 20,
-                  right: 20,
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Earnings:',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Text(
-                          '₹${_calculateGrandTotal().toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 120),
         child: FloatingActionButton(
@@ -435,6 +606,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     return ListView.builder(
       itemCount: items.length,
       itemBuilder: (context, index) => StockCard(
+        key: ValueKey(
+          '${items[index].name}_${items[index].price}_${items[index].openingStock}',
+        ),
         item: items[index],
         onDelete: () {
           setState(() {
@@ -444,7 +618,64 @@ class _DashboardScreenState extends State<DashboardScreen>
         onSetState: (callback) {
           setState(callback);
         },
+        currentTheme: _currentTheme,
       ),
     );
+  }
+
+  /// Get page earnings card color based on selected theme
+  Color _getPageEarningsColor() {
+    switch (_currentTheme) {
+      case 'green':
+        return const Color(0xFFFFD54F); // Bright yellow for green theme
+      case 'orange':
+        return const Color(0xFFFFC107); // Amber/yellow for orange theme
+      case 'dark':
+        return const Color(0xFF37474F); // Blue-gray for dark mode
+      case 'default':
+      default:
+        return Colors.blue;
+    }
+  }
+
+  /// Get page earnings text color based on selected theme
+  Color _getPageEarningsTextColor() {
+    switch (_currentTheme) {
+      case 'green':
+      case 'orange':
+        return Colors.black87; // Dark text for yellow backgrounds
+      case 'dark':
+      case 'default':
+      default:
+        return Colors.white;
+    }
+  }
+
+  /// Get total earnings card color based on selected theme
+  Color _getTotalEarningsColor() {
+    switch (_currentTheme) {
+      case 'green':
+        return Colors.green[700]!;
+      case 'orange':
+        return Colors.deepOrange[700]!;
+      case 'dark':
+        return const Color(0xFF37474F); // Blue-gray for dark mode
+      case 'default':
+      default:
+        return Colors.green;
+    }
+  }
+
+  /// Get total earnings text color based on selected theme
+  Color _getTotalEarningsTextColor() {
+    switch (_currentTheme) {
+      case 'dark':
+        return Colors.white70;
+      case 'default':
+      case 'green':
+      case 'orange':
+      default:
+        return Colors.white;
+    }
   }
 }

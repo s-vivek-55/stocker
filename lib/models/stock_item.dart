@@ -1,11 +1,27 @@
+import 'package:hive/hive.dart';
+
+part 'stock_item.g.dart';
+
 /// Stock item model class to hold product tracking values
+@HiveType(typeId: 0)
 class StockItem {
+  @HiveField(0)
   String name;
+
+  @HiveField(1)
   double price;
+
+  @HiveField(2)
   int openingStock;
-  List<int> returnedStockEntries; // Returned with 2 fields by default
-  List<int> addedStockEntries; // Added with 3 fields by default
-  List<int> closingStockEntries; // Closing with 2 fields by default
+
+  @HiveField(3)
+  List<int> returnedStockEntries; // Returned with 1 field by default
+
+  @HiveField(4)
+  List<int> addedStockEntries; // Added with 2 fields by default
+
+  @HiveField(5)
+  List<int> closingStockEntries; // Closing with 1 field by default
 
   StockItem({
     required this.name,
@@ -14,9 +30,9 @@ class StockItem {
     List<int>? returnedStockEntries,
     List<int>? addedStockEntries,
     List<int>? closingStockEntries,
-  }) : returnedStockEntries = returnedStockEntries ?? [0, 0],
-       addedStockEntries = addedStockEntries ?? [0, 0, 0],
-       closingStockEntries = closingStockEntries ?? [0, 0];
+  }) : returnedStockEntries = returnedStockEntries ?? [0],
+       addedStockEntries = addedStockEntries ?? [0, 0],
+       closingStockEntries = closingStockEntries ?? [0];
 
   /// Calculate total returned stock from all entries
   int get returnedStock =>
