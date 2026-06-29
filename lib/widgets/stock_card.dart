@@ -237,14 +237,14 @@ class _StockCardState extends State<StockCard> {
                   // Opening Field
                   SizedBox(width: 45, child: _buildOpeningField()),
                   const SizedBox(width: 2),
-                  // Remaining Field
-                  SizedBox(width: 100, child: _buildRemainingField()),
-                  const SizedBox(width: 2),
+                  // Remaining Field (Returned)
+                  _buildRemainingRow(),
+                  const SizedBox(width: 8),
                   // Added Field
-                  _buildAddedSection(),
-                  const SizedBox(width: 2),
+                  _buildAddedRow(),
+                  const SizedBox(width: 8),
                   // Closing Field
-                  _buildClosingSection(),
+                  _buildClosingRow(),
                 ],
               ),
             ),
@@ -384,7 +384,9 @@ class _StockCardState extends State<StockCard> {
           padding: const EdgeInsets.only(left: 2),
           child: Center(
             child: IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.green),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
               tooltip: 'Add Returned',
               onPressed: () {
                 widget.onSetState(() {
@@ -477,7 +479,9 @@ class _StockCardState extends State<StockCard> {
           padding: const EdgeInsets.only(left: 2),
           child: Center(
             child: IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.green),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
               tooltip: 'Add',
               onPressed: () {
                 widget.onSetState(() {
@@ -573,7 +577,9 @@ class _StockCardState extends State<StockCard> {
           padding: const EdgeInsets.only(left: 2),
           child: Center(
             child: IconButton(
-              icon: const Icon(Icons.add_circle, color: Colors.green),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
               tooltip: 'Add',
               onPressed: () {
                 widget.onSetState(() {

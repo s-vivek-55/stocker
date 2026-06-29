@@ -57,7 +57,7 @@ class _ShopSelectionScreenState extends State<ShopSelectionScreen>
           ),
         );
 
-    // Sweets button controller with pulse animation
+    // Dairy button controller with pulse animation
     _sweetsController = AnimationController(
       duration: AppConstants.durationButtonPulse,
       vsync: this,
@@ -130,7 +130,7 @@ class _ShopSelectionScreenState extends State<ShopSelectionScreen>
                     child: Column(
                       children: [
                         Text(
-                          _username,
+                          "Hi, "+_username,
                           style: const TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w300,

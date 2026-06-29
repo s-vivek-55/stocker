@@ -79,7 +79,7 @@ class PdfService {
             '${item.returnedStock}',
             '${item.addedStock}',
             '${item.closingStock}',
-            '${item.sold < 0 ? 0 : item.sold}',
+            '${item.sold}',
             '${roundPrice(item.totalEarnings).toInt()}',
           ],
         ),

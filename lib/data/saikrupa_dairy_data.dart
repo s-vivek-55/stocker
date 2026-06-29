@@ -1,7 +1,7 @@
 import '../models/stock_item.dart';
 
-/// Saikrupa Snacks shop inventory data
-final List<StockItem> saikrupaSnacksItems = [
+/// Saikrupa Dairy shop inventory data
+final List<StockItem> saikrupaDairyItems = [
   StockItem(name: 'Advance', price: 25.0, openingStock: 0),
   StockItem(name: 'King', price: 25.0, openingStock: 0),
   StockItem(name: 'Filter', price: 13.0, openingStock: 0),

@@ -14,7 +14,7 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const StockerApp());
 
-    // Verify that the app title is displayed.
-    expect(find.text('Stocker - Stock Inventory'), findsOneWidget);
+    // Verify that the splash screen progress is displayed.
+    expect(find.text('0%'), findsOneWidget);
   });
 }

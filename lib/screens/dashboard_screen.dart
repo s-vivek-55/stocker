@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/stock_item.dart';
 import '../widgets/stock_card.dart';
-import '../data/saikrupa_sweets_data.dart';
+import '../data/saikrupa_dairy_data.dart';
 import '../data/saikrupa_snacks_data.dart';
 import '../services/pdf_service.dart';
 import '../services/data_persistence_service.dart';
@@ -26,6 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   late List<StockItem> _templateItems;
   bool _isLoading = true;
   String _currentTheme = 'default';
+  bool _isMenuOpen = false;
 
   @override
   void initState() {
@@ -37,8 +38,8 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     // Load template data
     _templateItems = List<StockItem>.from(
-      widget.shopName == 'Saikrupa Sweets'
-          ? saikrupaSweetsItems
+      widget.shopName == 'Saikrupa Dairy'
+          ? saikrupaDairyItems
           : saikrupaSnacksItems,
     );
 
@@ -60,6 +61,18 @@ class _DashboardScreenState extends State<DashboardScreen>
     setState(() {
       _items = items;
       _isLoading = false;
+    });
+  }
+
+  /// Auto-save today's data to Hive
+  void _autoSaveData() {
+    DataPersistenceService.saveDayData(
+      shopName: widget.shopName,
+      items: _items,
+    ).then((_) {
+      print('✓ Auto-saved today\'s data');
+    }).catchError((e) {
+      print('✗ Error auto-saving data: $e');
     });
   }
 
@@ -148,6 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     StockItem(name: name, price: price, openingStock: 0),
                   );
                 });
+                _autoSaveData();
                 Navigator.of(context).pop();
               }
             },
@@ -323,114 +337,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           style: const TextStyle(color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'pdf') {
-                _generateReportDialog();
-              } else if (value == 'finish') {
-                _finishDay();
-              } else if (value.startsWith('theme_')) {
-                final newTheme = value.replaceFirst('theme_', '');
-                setState(() {
-                  _currentTheme = newTheme;
-                });
-                // Save theme to Hive
-                ThemeService.saveTheme(newTheme);
-              } else if (value == 'exit') {
-                Navigator.of(context).pushReplacementNamed('/shop-selection');
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
-                value: 'pdf',
-                child: Row(
-                  children: [
-                    Icon(Icons.picture_as_pdf, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Generate PDF'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem<String>(
-                value: 'finish',
-                child: Row(
-                  children: [
-                    Icon(Icons.done_all, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Finish Day'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              CheckedPopupMenuItem<String>(
-                value: 'theme_default',
-                checked: _currentTheme == 'default',
-                child: const Row(
-                  children: [
-                    Icon(Icons.palette, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Default'),
-                  ],
-                ),
-              ),
-              CheckedPopupMenuItem<String>(
-                value: 'theme_green',
-                checked: _currentTheme == 'green',
-                child: const Row(
-                  children: [
-                    Icon(Icons.palette, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Green'),
-                  ],
-                ),
-              ),
-              CheckedPopupMenuItem<String>(
-                value: 'theme_orange',
-                checked: _currentTheme == 'orange',
-                child: const Row(
-                  children: [
-                    Icon(Icons.palette, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Orange'),
-                  ],
-                ),
-              ),
-              CheckedPopupMenuItem<String>(
-                value: 'theme_dark',
-                checked: _currentTheme == 'dark',
-                child: const Row(
-                  children: [
-                    Icon(Icons.palette, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Dark'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'exit',
-                child: Row(
-                  children: [
-                    Icon(Icons.exit_to_app, color: Colors.black),
-                    SizedBox(width: 10),
-                    Text('Exit to Shop Selection'),
-                  ],
-                ),
-              ),
-            ],
-            child: const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Icon(Icons.menu, color: Colors.white),
-                  SizedBox(width: 4),
-                  Text('Menu', style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-          ),
-        ],
+
         bottom: TabBar(
           controller: _tabController,
           labelStyle: const TextStyle(color: Colors.white),
@@ -454,6 +361,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             ? const Center(child: CircularProgressIndicator())
             : Stack(
                 children: [
+                  if (_isMenuOpen)
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: _toggleMenu,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.4),
+                        ),
+                      ),
+                    ),
                   Column(
                     children: [
                       // Page-Specific Total Summary Card
@@ -572,10 +489,58 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 120),
-        child: FloatingActionButton(
-          onPressed: _addNewItemDialog,
-          tooltip: 'Add New Item',
-          child: const Icon(Icons.add),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_isMenuOpen) ...[
+              _buildSpeedDialItem(
+                label: 'Back to Shops',
+                icon: Icons.store,
+                onPressed: () {
+                  _toggleMenu();
+                  Navigator.of(context).pushReplacementNamed('/shop-selection');
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildSpeedDialItem(
+                label: 'Generate PDF',
+                icon: Icons.picture_as_pdf,
+                onPressed: () {
+                  _toggleMenu();
+                  _generateReportDialog();
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildSpeedDialItem(
+                label: 'Finish Day',
+                icon: Icons.done_all,
+                onPressed: () {
+                  _toggleMenu();
+                  _finishDay();
+                },
+              ),
+              const SizedBox(height: 10),
+              _buildSpeedDialItem(
+                label: 'Add New Item',
+                icon: Icons.add_box,
+                onPressed: () {
+                  _toggleMenu();
+                  _addNewItemDialog();
+                },
+              ),
+              const SizedBox(height: 15),
+            ],
+            FloatingActionButton(
+              onPressed: _toggleMenu,
+              tooltip: 'Menu',
+              child: AnimatedRotation(
+                turns: _isMenuOpen ? 0.125 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: const Icon(Icons.add),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -594,12 +559,56 @@ class _DashboardScreenState extends State<DashboardScreen>
           setState(() {
             _items.remove(items[index]);
           });
+          _autoSaveData();
         },
         onSetState: (callback) {
           setState(callback);
+          _autoSaveData();
         },
         currentTheme: _currentTheme,
       ),
+    );
+  }
+
+  /// Toggle speed dial menu open/close
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+    });
+  }
+
+  /// Build speed dial sub-button with label
+  Widget _buildSpeedDialItem({
+    required String label,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FloatingActionButton.small(
+          onPressed: onPressed,
+          heroTag: label,
+          child: Icon(icon),
+        ),
+      ],
     );
   }
 

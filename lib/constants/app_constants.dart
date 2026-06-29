@@ -7,7 +7,7 @@ class AppConstants {
   static const String appSubtitle = 'Inventory Management System';
 
   // Shop Names
-  static const String shopSweetsName = 'Saikrupa Sweets';
+  static const String shopSweetsName = 'Saikrupa Dairy';
   static const String shopSnacksName = 'Saikrupa Snacks';
   static const String shopGeneralName = 'General Store';
   static const String shopImportedName = 'Imported';
