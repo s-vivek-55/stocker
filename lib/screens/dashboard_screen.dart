@@ -535,9 +535,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               onPressed: _toggleMenu,
               tooltip: 'Menu',
               child: AnimatedRotation(
-                turns: _isMenuOpen ? 0.125 : 0.0,
+                turns: _isMenuOpen ? 0.25 : 0.0,
                 duration: const Duration(milliseconds: 200),
-                child: const Icon(Icons.add),
+                child: const Icon(Icons.menu),
               ),
             ),
           ],

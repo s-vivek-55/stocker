@@ -381,20 +381,16 @@ class _StockCardState extends State<StockCard> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 2),
-          child: Center(
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
-              tooltip: 'Add Returned',
-              onPressed: () {
-                widget.onSetState(() {
-                  widget.item.returnedStockEntries.add(0);
-                  _returnedControllers.add(TextEditingController(text: '0'));
-                });
-              },
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            onTap: () {
+              widget.onSetState(() {
+                widget.item.returnedStockEntries.add(0);
+                _returnedControllers.add(TextEditingController(text: '0'));
+              });
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: const Icon(Icons.add_circle, color: Colors.green, size: 20),
           ),
         ),
       ],
@@ -476,20 +472,16 @@ class _StockCardState extends State<StockCard> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 2),
-          child: Center(
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
-              tooltip: 'Add',
-              onPressed: () {
-                widget.onSetState(() {
-                  widget.item.addedStockEntries.add(0);
-                  _addedControllers.add(TextEditingController(text: '0'));
-                });
-              },
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            onTap: () {
+              widget.onSetState(() {
+                widget.item.addedStockEntries.add(0);
+                _addedControllers.add(TextEditingController(text: '0'));
+              });
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: const Icon(Icons.add_circle, color: Colors.green, size: 20),
           ),
         ),
       ],
@@ -574,20 +566,16 @@ class _StockCardState extends State<StockCard> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.only(left: 2),
-          child: Center(
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: const Icon(Icons.add_circle, color: Colors.green, size: 20),
-              tooltip: 'Add',
-              onPressed: () {
-                widget.onSetState(() {
-                  widget.item.closingStockEntries.add(0);
-                  _closingControllers.add(TextEditingController(text: '0'));
-                });
-              },
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: InkWell(
+            onTap: () {
+              widget.onSetState(() {
+                widget.item.closingStockEntries.add(0);
+                _closingControllers.add(TextEditingController(text: '0'));
+              });
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: const Icon(Icons.add_circle, color: Colors.green, size: 20),
           ),
         ),
       ],

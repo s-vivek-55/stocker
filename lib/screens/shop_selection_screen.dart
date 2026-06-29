@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import '../screens/dashboard_screen.dart';
 import '../services/theme_service.dart';
@@ -120,252 +121,176 @@ class _ShopSelectionScreenState extends State<ShopSelectionScreen>
         child: SafeArea(
           child: Column(
             children: [
-              // Animated Title Section
-              FadeTransition(
-                opacity: _titleFade,
-                child: SlideTransition(
-                  position: _titleSlide,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    child: Column(
+              // Top Action Row
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.exit_to_app, color: Colors.white70),
+                      tooltip: 'Exit App',
+                      onPressed: () {
+                        SystemNavigator.pop();
+                      },
+                    ),
+                    Row(
                       children: [
-                        Text(
-                          "Hi, "+_username,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w300,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.white70),
+                          tooltip: 'Edit Name',
+                          onPressed: _showEditNameDialog,
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _greeting,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.upload_file, color: Colors.white70),
+                          tooltip: 'Import CSV/Excel',
+                          onPressed: _showShopSelectionDialog,
                         ),
-                        const SizedBox(height: 16),
-                        Container(
-                          height: 4,
-                          width: 100,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(2),
-                            gradient: LinearGradient(
-                              colors: ThemeHelper.getTitleDecorativeGradient(
-                                _currentTheme,
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Animated Title Section (Centered)
+                          FadeTransition(
+                            opacity: _titleFade,
+                            child: SlideTransition(
+                              position: _titleSlide,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    "Hi, "+_username,
+                                    style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w300,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _greeting,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withOpacity(0.9),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    height: 4,
+                                    width: 100,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(2),
+                                      gradient: LinearGradient(
+                                        colors: ThemeHelper.getTitleDecorativeGradient(
+                                          _currentTheme,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    AppConstants.welcomeToStockerText,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontWeight: FontWeight.w500,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    AppConstants.chooseShopText,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          AppConstants.welcomeToStockerText,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.8),
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.3,
+                          
+                          const SizedBox(height: 32),
+                          
+                          // Shop Cards
+                          ScaleTransition(
+                            scale: _sweetsScale,
+                            child: UIHelpers.buildShopCard(
+                              context: context,
+                              shopName: AppConstants.shopSweetsName,
+                              backgroundColor: ThemeHelper.getCardBackgroundColor(
+                                _currentTheme,
+                                0,
+                              ),
+                              accentColor: ThemeHelper.getCardAccentColor(
+                                _currentTheme,
+                                0,
+                              ),
+                              icon: Icons.cake,
+                              onTap: () => _navigateToDashboard(
+                                context,
+                                AppConstants.shopSweetsName,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          AppConstants.chooseShopText,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.white70,
-                            fontWeight: FontWeight.w400,
+                          const SizedBox(height: 20),
+                          ScaleTransition(
+                            scale: _snacksScale,
+                            child: UIHelpers.buildShopCard(
+                              context: context,
+                              shopName: AppConstants.shopSnacksName,
+                              backgroundColor: ThemeHelper.getCardBackgroundColor(
+                                _currentTheme,
+                                1,
+                              ),
+                              accentColor: ThemeHelper.getCardAccentColor(
+                                _currentTheme,
+                                1,
+                              ),
+                              icon: Icons.fastfood,
+                              onTap: () => _navigateToDashboard(
+                                context,
+                                AppConstants.shopSnacksName,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-              SizedBox(height: size.height * 0.04),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ScaleTransition(
-                        scale: _sweetsScale,
-                        child: UIHelpers.buildShopCard(
-                          context: context,
-                          shopName: AppConstants.shopSweetsName,
-                          backgroundColor: ThemeHelper.getCardBackgroundColor(
-                            _currentTheme,
-                            0,
-                          ),
-                          accentColor: ThemeHelper.getCardAccentColor(
-                            _currentTheme,
-                            0,
-                          ),
-                          icon: Icons.cake,
-                          onTap: () => _navigateToDashboard(
-                            context,
-                            AppConstants.shopSweetsName,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: size.height * 0.04),
-                      ScaleTransition(
-                        scale: _snacksScale,
-                        child: UIHelpers.buildShopCard(
-                          context: context,
-                          shopName: AppConstants.shopSnacksName,
-                          backgroundColor: ThemeHelper.getCardBackgroundColor(
-                            _currentTheme,
-                            1,
-                          ),
-                          accentColor: ThemeHelper.getCardAccentColor(
-                            _currentTheme,
-                            1,
-                          ),
-                          icon: Icons.fastfood,
-                          onTap: () => _navigateToDashboard(
-                            context,
-                            AppConstants.shopSnacksName,
-                          ),
-                        ),
-                      ),
-                    ],
+              
+              // Bottom Change Theme Button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: TextButton.icon(
+                  onPressed: _showThemeSelectionDialog,
+                  icon: const Icon(Icons.palette, color: Colors.white70, size: 20),
+                  label: const Text(
+                    'Change Theme',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-              SizedBox(height: size.height * 0.08),
             ],
           ),
-        ),
-      ),
-      floatingActionButton: PopupMenuButton<String>(
-        onSelected: (String value) {
-          if (value == 'edit_name') {
-            _showEditNameDialog();
-          } else if (value == 'import_csv') {
-            _showShopSelectionDialog();
-          } else {
-            _changeTheme(value);
-          }
-        },
-        itemBuilder: (BuildContext context) => [
-          PopupMenuItem<String>(
-            value: 'edit_name',
-            child: Row(
-              children: const [
-                Icon(Icons.edit, size: 20),
-                SizedBox(width: 12),
-                Text(AppConstants.editNameText),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'import_csv',
-            child: Row(
-              children: const [
-                Icon(Icons.upload_file, size: 20),
-                SizedBox(width: 12),
-                Text(AppConstants.importCsvExcelText),
-              ],
-            ),
-          ),
-          const PopupMenuDivider(),
-          PopupMenuItem<String>(
-            value: 'default',
-            child: Row(
-              children: [
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentTheme == 'default'
-                        ? AppConstants.colorDefaultTertiary
-                        : Colors.grey,
-                  ),
-                  child: _currentTheme == 'default'
-                      ? const Icon(Icons.check, size: 10, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Text('Default (Blue)'),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'green',
-            child: Row(
-              children: [
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentTheme == 'green'
-                        ? AppConstants.colorGreenTertiary
-                        : Colors.grey,
-                  ),
-                  child: _currentTheme == 'green'
-                      ? const Icon(Icons.check, size: 10, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Text('Green'),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'orange',
-            child: Row(
-              children: [
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentTheme == 'orange'
-                        ? AppConstants.colorOrangeTertiary
-                        : Colors.grey,
-                  ),
-                  child: _currentTheme == 'orange'
-                      ? const Icon(Icons.check, size: 10, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Text('Orange'),
-              ],
-            ),
-          ),
-          PopupMenuItem<String>(
-            value: 'dark',
-            child: Row(
-              children: [
-                Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentTheme == 'dark'
-                        ? AppConstants.colorDarkTertiary
-                        : Colors.grey,
-                  ),
-                  child: _currentTheme == 'dark'
-                      ? const Icon(Icons.check, size: 10, color: Colors.white)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                const Text('Dark'),
-              ],
-            ),
-          ),
-        ],
-        child: FloatingActionButton(
-          backgroundColor: ThemeHelper.getFabBackgroundColor(_currentTheme),
-          onPressed: null,
-          child: const Icon(Icons.palette, color: Colors.white),
         ),
       ),
     );
@@ -627,6 +552,67 @@ class _ShopSelectionScreenState extends State<ShopSelectionScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showThemeSelectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => SimpleDialog(
+        title: const Text('Select Theme'),
+        children: [
+          _buildThemeDialogOption(
+            'default',
+            'Default (Blue)',
+            AppConstants.colorDefaultTertiary,
+          ),
+          _buildThemeDialogOption(
+            'green',
+            'Green',
+            AppConstants.colorGreenTertiary,
+          ),
+          _buildThemeDialogOption(
+            'orange',
+            'Orange',
+            AppConstants.colorOrangeTertiary,
+          ),
+          _buildThemeDialogOption(
+            'dark',
+            'Dark',
+            AppConstants.colorDarkTertiary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeDialogOption(
+    String themeValue,
+    String themeName,
+    Color color,
+  ) {
+    return SimpleDialogOption(
+      onPressed: () {
+        Navigator.of(context).pop();
+        _changeTheme(themeValue);
+      },
+      child: Row(
+        children: [
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+            ),
+            child: _currentTheme == themeValue
+                ? const Icon(Icons.check, size: 10, color: Colors.white)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Text(themeName),
+        ],
       ),
     );
   }
